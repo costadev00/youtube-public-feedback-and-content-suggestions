@@ -38,7 +38,7 @@ Este projeto é uma aplicação web desenvolvida em Python utilizando Flask, que
 
 ## Uso
 1. Execute a aplicação
-   ´´´bash
+   ```bash
    python main.py
 2. Acesse a aplicação no navegador através do endereço http://127.0.0.1:5000/.
 3. Insira o link de um vídeo do YouTube e submeta o formulário para ver a análise dos comentários e a conclusão personalizada.
