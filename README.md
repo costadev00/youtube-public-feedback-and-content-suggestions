@@ -24,3 +24,21 @@ Este projeto é uma aplicação web desenvolvida em Python utilizando Flask, que
    ```bash
    git clone https://github.com/seu-usuario/youtube-comments-analysis.git
    cd youtube-comments-analysis
+2. Crie e ative um ambiente virtual (opcional, mas recomendado):
+   ´´´bash
+   python -m venv venv
+   source venv/bin/activate  # No Windows: venv\Scripts\activate
+3. Instale as dependências
+   ´´´bash
+   pip install -r requirements.txt
+4. Configure sua API Key do YouTube:
+   Crie um arquivo chamado api_key.py na raiz do projeto e insira:
+   ```python
+   API_KEY = "SUA_API_KEY_AQUI"
+
+## Uso
+1. Execute a aplicação
+   ´´´bash
+   python main.py
+2. Acesse a aplicação no navegador através do endereço http://127.0.0.1:5000/.
+3. Insira o link de um vídeo do YouTube e submeta o formulário para ver a análise dos comentários e a conclusão personalizada.

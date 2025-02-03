@@ -23,7 +23,7 @@ def extract_video_id(url):
             video_id = match.group(1)
     return video_id
 
-def get_comments(video_id, api_key, max_results=500):
+def get_comments(video_id, api_key, max_results=200):
     youtube = build('youtube', 'v3', developerKey=api_key)
     comments = []
     request = youtube.commentThreads().list(
