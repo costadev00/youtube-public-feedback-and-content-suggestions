@@ -67,7 +67,7 @@ This project is a web application developed in Python using Flask that extracts 
 
 The architecture of the YouTube Comments Sentiment Analysis application is illustrated in the following diagram:
 
-![Architecture Diagram](#file:youtube-comment-analysis-architecture.png)
+![Architecture Diagram](youtube-comment-analysis-architecture.png)
 
 The main components of the architecture are:
 
