@@ -1,29 +1,59 @@
 import re
+import asyncio
 from flask import Flask, render_template, request
 from googleapiclient.discovery import build
 from transformers import pipeline
-from api_key import API_KEY
+from api_key import API_KEY          # YouTube API key
+from api_key import OPENAI_API_KEY   # OpenAI API key
+import openai
+
+# Configure OpenAI with your API key
+openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
 
+def get_content_suggestions(analysis_summary, average):
+    """
+    Receives a detailed analysis summary and the average sentiment,
+    and returns tailored TikTok content ideas to engage sports video audiences,
+    based on their feedback.
+    """
+    prompt = (
+        f"Based on the analysis of the comments from this sports video, the following observations were made:\n"
+        f"- The audience's overall sentiment is {average:.2f} stars.\n"
+        f"- Analysis summary: {analysis_summary}\n\n"
+        "Considering that this feedback comes from a sports-related content video, "
+        "please suggest at least 3 innovative and engaging TikTok content ideas that build on this audience reaction. "
+        "Each suggestion should include a brief explanation of how the idea taps into the current viewer sentiment and how it can boost audience engagement."
+    )
+    
+    completion = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a creative assistant specializing in social media content production for sports."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+        max_tokens=300
+    )
+    return completion.choices[0].message["content"]
+
 def extract_video_id(url):
     """
-    Extrai o video_id a partir do link do YouTube.
-    Suporta URLs no formato padrão (com "v=") e encurtadas (youtu.be).
+    Extracts the video_id from the YouTube link.
+    Supports standard URLs (with "v=") and shortened URLs (youtu.be).
     """
     video_id = None
-    # Tenta extrair do parâmetro "v="
     match = re.search(r"v=([A-Za-z0-9_-]{11})", url)
     if match:
         video_id = match.group(1)
     else:
-        # Tenta extrair do formato youtu.be
         match = re.search(r"youtu\.be/([A-Za-z0-9_-]{11})", url)
         if match:
             video_id = match.group(1)
     return video_id
 
-def get_comments(video_id, api_key, max_results=200):
+def get_comments(video_id, api_key, max_results=50):
     youtube = build('youtube', 'v3', developerKey=api_key)
     comments = []
     request = youtube.commentThreads().list(
@@ -46,11 +76,11 @@ def is_emoji_comment(comment):
     comment = comment.strip()
     emoji_pattern = re.compile("[" 
         u"\U0001F600-\U0001F64F"  # emoticons
-        u"\U0001F300-\U0001F5FF"  # símbolos e pictogramas
-        u"\U0001F680-\U0001F6FF"  # transportes e mapas
-        u"\U0001F1E0-\U0001F1FF"  # bandeiras
-        u"\U00002700-\U000027BF"  # diversos símbolos
-        u"\U0001F900-\U0001F9FF"  # símbolos adicionais
+        u"\U0001F300-\U0001F5FF"  # symbols & pictograms
+        u"\U0001F680-\U0001F6FF"  # transports & maps
+        u"\U0001F1E0-\U0001F1FF"  # flags
+        u"\U00002700-\U000027BF"  # miscellaneous symbols
+        u"\U0001F900-\U0001F9FF"  # additional symbols
         "]+", flags=re.UNICODE)
     result = emoji_pattern.sub(r'', comment)
     return len(result) == 0
@@ -74,7 +104,6 @@ def custom_emoji_analysis(comment):
         "❤️": 5,
         "👏": 5,
         "👍": 5,
-        # Adicione outros emojis conforme necessário
     }
     total = 0
     count = 0
@@ -86,71 +115,47 @@ def custom_emoji_analysis(comment):
         return None
     avg = total / count
     if avg < 1.5:
-        label = "PÉSSIMO"
+        label = "TERRIBLE"
     elif avg < 2.5:
-        label = "RUIM"
+        label = "BAD"
     elif avg < 3.5:
-        label = "MEDIANO"
+        label = "AVERAGE"
     else:
-        label = "EXCELENTE"
+        label = "EXCELLENT"
     return {"label": label, "score": 1.0}
 
 def clean_comment(comment):
-    """
-    Realiza uma limpeza básica no comentário (remoção de espaços extras, etc.).
-    """
     return " ".join(comment.split())
 
 def get_sentiment_pipeline():
-    """
-    Retorna um pipeline de análise de sentimentos otimizado para o português.
-    Tenta utilizar o modelo 'pysentimiento/roberta-base-portuguese-sentiment';
-    em caso de falha, utiliza o modelo multilíngue.
-    """
-    try:
-        sentiment_pipeline = pipeline(
-            "sentiment-analysis",
-            model="pysentimiento/roberta-base-portuguese-sentiment",
-            truncation=True
-        )
-    except Exception as e:
-        print("Falha ao carregar o modelo específico para português. Usando o modelo multilíngue.")
-        sentiment_pipeline = pipeline(
-            "sentiment-analysis",
-            model="nlptown/bert-base-multilingual-uncased-sentiment",
-            truncation=True
-        )
+    sentiment_pipeline = pipeline(
+        task='text-classification',
+        model='nlptown/bert-base-multilingual-uncased-sentiment',
+        device=-1  # Force CPU
+    )
     return sentiment_pipeline
 
 def map_star_label(label):
-    """
-    Mapeia um rótulo no formato "X stars" para um rótulo textual baseado nos thresholds:
-      - ≥ 4.50: EXCELENTE
-      - ≥ 3.50: MEDIANO
-      - ≥ 2.50: RUIM
-      - ≥ 1.50: PÉSSIMO
-    """
     try:
         value = float(label.split()[0])
-    except Exception as e:
+    except Exception:
         return label
     if value >= 4.50:
-        return "EXCELENTE"
-    elif value >= 3.50:
-        return "MEDIANO"
+        return "EXCELLENT"
+    elif value >= 3.00:
+        return "AVERAGE"
     elif value >= 2.50:
-        return "RUIM"
+        return "BAD"
     elif value >= 1.50:
-        return "PÉSSIMO"
+        return "TERRIBLE"
     else:
-        return "PÉSSIMO"
+        return "TERRIBLE"
 
 def analyze_comments(comments):
     sentiment_pipeline = get_sentiment_pipeline()
     results = []
     for comment in comments:
         comment_clean = clean_comment(comment)
-        # Se o comentário for composto apenas de emojis, usamos a análise customizada
         if is_emoji_comment(comment_clean):
             result = custom_emoji_analysis(comment_clean)
             if result:
@@ -170,14 +175,10 @@ def summarize_sentiments(sentiments):
     count = 0
     for result in sentiments:
         label = result.get('label', '')
-        # Tenta converter os rótulos mapeados para valores numéricos
-        # Supondo que os rótulos customizados não sejam convertíveis, vamos usar os valores numéricos originais
         try:
-            # Se o rótulo for algo como "5 stars", extraímos o valor
             stars = float(label.split()[0])
         except (ValueError, IndexError):
-            # Se falhar, podemos atribuir um valor médio com base no rótulo customizado
-            mapping = {"EXCELENTE": 5, "MEDIANO": 4, "RUIM": 3, "PÉSSIMO": 2}
+            mapping = {"EXCELLENT": 5, "AVERAGE": 4, "BAD": 3, "TERRIBLE": 2}
             stars = mapping.get(label.upper(), 0)
         total += stars
         count += 1
@@ -188,47 +189,44 @@ def summarize_sentiments(sentiments):
 
 def generate_conclusion(average):
     if average is None:
-        return "Infelizmente, não conseguimos coletar dados suficientes para chegar a uma conclusão. Tente novamente mais tarde."
+        return "Unfortunately, we could not gather enough data to reach a conclusion. Please try again later."
     
-    if average >= 4.50:
-        rating = "EXCELENTE"
+    if average >= 4.5:
+        rating = "AMAZING"
         extra_message = (
-            "O público demonstrou um entusiasmo excepcional, indicando que seu conteúdo é altamente apreciado. "
-            "Continue produzindo esse ótimo trabalho!"
+            "The feedback was overwhelmingly positive, indicating that the content resonated strongly with the audience."
         )
-    elif average>=4.00:
-        rating = "ÓTIMO"
+    elif average >= 4.0:
+        rating = "GOOD"
         extra_message = (
-            "A reação geral foi positiva, sugerindo que o conteúdo é bem recebido. Continue assim!"
+            "The feedback was generally positive, showing that the audience had a favorable response to the content."
         )
-    elif average >= 3.50:
-        rating = "BOM"
+    elif average >= 3.5:
+        rating = "AVERAGE"
         extra_message = (
-            "Os comentários indicam uma reação razoável. Há espaço para aprimoramento, mas você está no caminho certo."
+            "The feedback was moderately positive, suggesting room for improvement. Consider refining the content or presentation."
         )
-    elif average >= 2.50:
-        rating = "RUIM"
+    elif average >= 3.0:
+        rating = "BAD"
         extra_message = (
-            "A reação geral foi desfavorável. Talvez seja interessante revisar o conteúdo e buscar melhorias significativas."
-        )
-    elif average >= 1.50:
-        rating = "PÉSSIMO"
-        extra_message = (
-            "O feedback foi extremamente negativo, sugerindo que o conteúdo não atendeu às expectativas. "
-            "Reavalie o material e considere mudanças drásticas."
+            "The feedback was below average, indicating that the content did not fully meet audience expectations."
         )
     else:
-        rating = "PÉSSIMO"
+        rating = "TERRIBLE"
         extra_message = (
-            "O feedback foi extremamente negativo, sugerindo que o conteúdo não atendeu às expectativas. "
-            "Reavalie o material e considere mudanças drásticas."
+            "The feedback was extremely negative, indicating that the content did not meet expectations. "
+            "Reevaluate the material and consider drastic changes."
         )
     
     conclusion = (
-        f"Conclusão: A reação geral do público foi <strong>{rating}</strong> com uma média de {average:.2f} estrelas. "
+        f"Conclusion: The overall reaction from the audience was <strong>{rating}</strong> with an average of {average:.2f} stars. "
         f"{extra_message}"
     )
     return conclusion
+
+@app.context_processor
+def utility_processor():
+    return dict(zip=zip)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -236,12 +234,23 @@ def index():
         youtube_link = request.form.get('youtube_link')
         video_id = extract_video_id(youtube_link)
         if not video_id:
-            return render_template('index.html', error="Link inválido. Por favor, insira um link válido do YouTube.")
-        comments = get_comments(video_id, API_KEY, max_results=2000)
+            return render_template('index.html', error="Invalid link. Please enter a valid YouTube link.")
+        comments = get_comments(video_id, API_KEY, max_results=50)
         sentiments = analyze_comments(comments)
         average = summarize_sentiments(sentiments)
         conclusion = generate_conclusion(average)
-        return render_template('result.html', conclusion=conclusion, comments=comments, sentiments=sentiments, zip=zip)
+        
+        # Generate content suggestions based on the analysis using OpenAI
+        suggestions = get_content_suggestions(conclusion, average)
+        
+        return render_template(
+            'result.html',
+            conclusion=conclusion,
+            comments=comments,
+            sentiments=sentiments,
+            suggestions=suggestions,
+            zip=zip
+        )
     return render_template('index.html')
 
 if __name__ == '__main__':

@@ -1,44 +1,96 @@
-# YouTube Comments Analysis
+# YouTube Comments Sentiment Analysis
 
-Este projeto é uma aplicação web desenvolvida em Python utilizando Flask, que extrai comentários de vídeos do YouTube e realiza uma análise de sentimentos. A aplicação processa os comentários, atribui rótulos como **EXCELENTE**, **MEDIANO**, **RUIM** e **PÉSSIMO** para cada comentário, e apresenta uma conclusão geral da reação do público.
+This project is a web application developed in Python using Flask that extracts comments from YouTube videos and performs sentiment analysis on them. The application processes the comments, assigns labels such as **EXCELLENT**, **AVERAGE**, **BAD**, and **TERRIBLE** to each comment, and presents an overall conclusion of the audience's reaction. Additionally, based on the aggregated analysis, the application generates creative content suggestions specifically for TikTok using the OpenAI ChatCompletion API.
 
-## Funcionalidades
+## Features
 
-- **Extração de Comentários:** Utiliza a API do YouTube para coletar até 2000 comentários de um vídeo.
-- **Análise de Sentimentos:** Emprega modelos de análise de sentimentos (idealmente otimizados para o português) para classificar cada comentário.
-- **Tratamento de Emojis:** Implementa uma análise customizada para comentários compostos predominantemente por emojis.
-- **Interface Web:** Interface responsiva desenvolvida com Flask e Bootstrap, com um botão customizado para exibir ou ocultar os comentários analisados.
-- **Conclusão Personalizada:** Gera uma mensagem final chamativa com base na média dos sentimentos dos comentários.
+- **Comments Extraction:**  
+  Utilizes the YouTube API to collect up to 2000 comments from a video.
 
-## Requisitos
+- **Sentiment Analysis:**  
+  Uses a pre-trained sentiment analysis model (`nlptown/bert-base-multilingual-uncased-sentiment`) from Hugging Face to classify each comment.
+  - **Custom Emoji Analysis:** Custom routine to better interpret comments mostly made of emojis.
+  - **Aggregation:** Computes an overall sentiment average from individual comment scores and generates a detailed analysis summary.
 
-- Python 3.7 ou superior
+- **Content Suggestions for TikTok:**  
+  Based on the detailed sentiment analysis, the application builds a comprehensive prompt and queries the OpenAI ChatCompletion API to generate at least three innovative and creative content ideas for TikTok. Each suggestion includes a brief explanation of how the idea taps into the current viewer sentiment and can boost audience engagement.
+
+- **Modern UI/UX:**  
+  - A responsive web interface built with Flask and Bootstrap.
+  - A custom light-green toggle button to display or hide the analyzed comments.
+  - Detailed results page showing an overall sentiment conclusion, creative content suggestions, and a collapsible section for individual comment analyses.
+  - Clear formatting of suggestions – newlines in the suggestions are converted to HTML `<br>` tags, helping improve readability.
+
+## Requirements
+
+- Python 3.7 or higher
 - Flask
 - google-api-python-client
 - transformers
 - torch
+- openai
 
-## Instalação
+## Installation
 
-1. Clone o repositório:
+1. Clone the repository:
    ```bash
-   git clone https://github.com/seu-usuario/youtube-comments-analysis.git
+   git clone https://github.com/your-username/youtube-comments-analysis.git
    cd youtube-comments-analysis
-2. Crie e ative um ambiente virtual (opcional, mas recomendado):
+   ```
+2. Create and activate a virtual environment (optional, but recommended):
    ```bash
    python -m venv venv
-   source venv/bin/activate  # No Windows: venv\Scripts\activate
-3. Instale as dependências
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+3. Install the dependencies:
    ```bash
    pip install -r requirements.txt
-4. Configure sua API Key do YouTube:
-   Crie um arquivo chamado api_key.py na raiz do projeto e insira:
+   ```
+4. Configure your YouTube API Key:
+   Create a file named `api_key.py` in the root of the project and insert:
    ```python
-   API_KEY = "SUA_API_KEY_AQUI"
+   API_KEY = "YOUR_API_KEY_HERE"
+   OPENAI_API_KEY = "YOU_API_KEY_HERE"
+   ```
 
-## Uso
-1. Execute a aplicação
+## Usage
+
+1. Run the application:
    ```bash
    python main.py
-2. Acesse a aplicação no navegador através do endereço http://127.0.0.1:5000/.
-3. Insira o link de um vídeo do YouTube e submeta o formulário para ver a análise dos comentários e a conclusão personalizada.
+   ```
+2. Access the application in your browser at http://127.0.0.1:5000/.
+3. Enter the link of a YouTube video and submit the form to see the comment analysis and personalized conclusion.
+
+
+## Architecture
+
+The architecture of the YouTube Comments Sentiment Analysis application is illustrated in the following diagram:
+
+![Architecture Diagram](#file:youtube-comment-analysis-architecture.png)
+
+The main components of the architecture are:
+
+1. **YouTube API:**  
+   Fetches comments from YouTube videos.
+
+2. **Sentiment Analysis Module:**  
+   Processes the comments using a pre-trained sentiment analysis model.
+
+3. **Emoji Analysis Routine:**  
+   Custom logic to interpret comments primarily composed of emojis.
+
+4. **Aggregation Module:**  
+   Computes the overall sentiment and generates a detailed analysis summary.
+
+5. **Content Suggestion Module:**  
+   Uses the OpenAI ChatCompletion API to generate TikTok content suggestions based on the sentiment analysis.
+
+6. **Web Interface:**  
+   Built with Flask and Bootstrap, it displays the results and suggestions to the user.
+
+7. **Database:**  
+   Stores the comments, sentiment scores, and generated content suggestions.
+
+8. **User Interaction:**  
+   Users interact with the application through a modern, responsive web interface.
