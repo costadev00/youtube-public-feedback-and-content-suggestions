@@ -228,6 +228,41 @@ def generate_conclusion(average):
 def utility_processor():
     return dict(zip=zip)
 
+def save_comments_to_file(video_id, comments, sentiments, average, conclusion):
+    """
+    Salva os comentários e suas análises em um arquivo JSON para uso posterior.
+    
+    Args:
+        video_id (str): ID do vídeo do YouTube
+        comments (list): Lista de comentários
+        sentiments (list): Lista de análises de sentimento
+        average (float): Média de sentimento
+        conclusion (str): Conclusão gerada pela análise
+    """
+    # Cria pasta para armazenar os resultados se não existir
+    if not os.path.exists('analysis_results'):
+        os.makedirs('analysis_results')
+    
+    # Prepara os dados para salvar
+    data = {
+        'video_id': video_id,
+        'timestamp': datetime.now().isoformat(),
+        'average_sentiment': average,
+        'conclusion': conclusion,
+        'comments_analysis': [
+            {'comment': comment, 'sentiment': sentiment.get('label', 'N/A')}
+            for comment, sentiment in zip(comments, sentiments)
+        ]
+    }
+    
+    # Salva em um arquivo com nome baseado no ID do vídeo e timestamp
+    filename = f"analysis_results/{video_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+    
+    return filename
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -239,6 +274,9 @@ def index():
         sentiments = analyze_comments(comments)
         average = summarize_sentiments(sentiments)
         conclusion = generate_conclusion(average)
+
+        # Salva os comentários e análises em um arquivo
+        saved_file = save_comments_to_file(video_id, comments, sentiments, average, conclusion)
         
         # Generate content suggestions based on the analysis using OpenAI
         suggestions = get_content_suggestions(conclusion, average)
