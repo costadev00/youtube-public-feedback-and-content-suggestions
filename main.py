@@ -7,6 +7,11 @@ from api_key import API_KEY          # YouTube API key
 from api_key import OPENAI_API_KEY   # OpenAI API key
 import openai
 
+import os
+import json
+from datetime import datetime
+from flask import jsonify
+
 # Configure OpenAI with your API key
 openai.api_key = OPENAI_API_KEY
 
@@ -290,6 +295,140 @@ def index():
             zip=zip
         )
     return render_template('index.html')
+
+    
+@app.route('/batch-analysis', methods=['POST'])
+def batch_analysis():
+    """
+    Rota para análise em lote de múltiplos vídeos do YouTube.
+    Recebe uma lista de links de vídeos, analisa os comentários de todos eles
+    e retorna uma análise agregada, salvando também os resultados em arquivos.
+    
+    Exemplo de JSON esperado no request:
+    {
+        "youtube_links": [
+            "https://www.youtube.com/watch?v=video1",
+            "https://www.youtube.com/watch?v=video2",
+            "..."
+        ],
+        "max_comments_per_video": 50  # opcional, default 50
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'youtube_links' not in data:
+            return jsonify({'error': 'Invalid request. Please provide a list of YouTube links.'}), 400
+            
+        youtube_links = data.get('youtube_links', [])
+        max_comments = data.get('max_comments_per_video', 50)
+        
+        # Verificar se há links para analisar
+        if not youtube_links or not isinstance(youtube_links, list):
+            return jsonify({'error': 'Please provide at least one YouTube link.'}), 400
+            
+        # Criar pasta para resultados em lote
+        batch_folder = f"batch_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        batch_path = os.path.join('analysis_results', batch_folder)
+        
+        if not os.path.exists('analysis_results'):
+            os.makedirs('analysis_results')
+        
+        if not os.path.exists(batch_path):
+            os.makedirs(batch_path)
+        
+        # Inicializar variáveis para análise agregada
+        all_comments = []
+        all_sentiments = []
+        processed_videos = []
+        failed_videos = []
+        
+        # Processar cada vídeo
+        for link in youtube_links:
+            video_id = extract_video_id(link)
+            
+            if not video_id:
+                failed_videos.append({'link': link, 'reason': 'Invalid YouTube link format'})
+                continue
+                
+            try:
+                # Obter e analisar comentários
+                comments = get_comments(video_id, API_KEY, max_results=max_comments)
+                sentiments = analyze_comments(comments)
+                
+                if not comments or len(comments) == 0:
+                    failed_videos.append({'link': link, 'reason': 'No comments found or unable to retrieve comments'})
+                    continue
+                
+                # Calcular média para este vídeo
+                video_average = summarize_sentiments(sentiments)
+                video_conclusion = generate_conclusion(video_average)
+                
+                # Salvar análise individual deste vídeo
+                filename = save_comments_to_file(video_id, comments, sentiments, video_average, video_conclusion)
+                
+                # Adicionar aos resultados agregados
+                all_comments.extend(comments)
+                all_sentiments.extend(sentiments)
+                
+                processed_videos.append({
+                    'video_id': video_id,
+                    'link': link,
+                    'comments_count': len(comments),
+                    'average': video_average,
+                    'conclusion': video_conclusion
+                })
+                
+            except Exception as e:
+                failed_videos.append({'link': link, 'reason': str(e)})
+        
+        # Calcular análise agregada de todos os vídeos
+        if all_sentiments:
+            aggregate_average = summarize_sentiments(all_sentiments)
+            aggregate_conclusion = generate_conclusion(aggregate_average)
+        else:
+            return jsonify({
+                'error': 'Could not analyze any videos. Please check the logs for details.',
+                'failed_videos': failed_videos
+            }), 400
+        
+        # Salvar análise agregada em um arquivo separado
+        aggregate_data = {
+            'timestamp': datetime.now().isoformat(),
+            'videos_analyzed': len(processed_videos),
+            'total_comments': len(all_comments),
+            'aggregate_average': aggregate_average,
+            'aggregate_conclusion': aggregate_conclusion,
+            'processed_videos': processed_videos,
+            'failed_videos': failed_videos
+        }
+        
+        aggregate_filename = os.path.join(batch_path, 'aggregate_analysis.json')
+        with open(aggregate_filename, 'w', encoding='utf-8') as f:
+            json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
+        
+        # Gerar sugestões baseadas na análise agregada
+        suggestions = get_content_suggestions(aggregate_conclusion, aggregate_average)
+        
+        # Salvar as sugestões no arquivo de agregação atualizado
+        aggregate_data['content_suggestions'] = suggestions
+        with open(aggregate_filename, 'w', encoding='utf-8') as f:
+            json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
+        
+        return jsonify({
+            'status': 'success',
+            'videos_analyzed': len(processed_videos),
+            'total_comments': len(all_comments),
+            'aggregate_average': aggregate_average,
+            'aggregate_conclusion': aggregate_conclusion,
+            'content_suggestions': suggestions,
+            'batch_folder': batch_folder,
+            'processed_videos': processed_videos,
+            'failed_videos': failed_videos
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
