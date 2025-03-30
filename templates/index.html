@@ -116,8 +116,8 @@
           Inteligente
         </h2>
         <p class="mt-4 text-lg text-gray-400 max-w-xl mx-auto">
-          Automatize seu funil de vendas com IA. Conecte-se com leads, envie
-          mensagens automáticas e aumente suas conversões.
+          Analise a percepção do público sobre todo o universo da categoria em
+          que você atua
         </p>
       </section>
 
@@ -129,31 +129,28 @@
         class="section gs-reveal relative py-16 px-4 md:px-8 text-center bg-[#252525] rounded-2xl mx-4 md:mx-16 lg:mx-32 shadow-lg z-10 mt-16 md:mt-24"
       >
         <h2 class="text-4xl font-extrabold text-blue-400">
-          Por que escolher a LeadAI?
+          Por que escolher a ClaudIA?
         </h2>
         <p class="mt-4 text-lg text-gray-400 max-w-3xl mx-auto">
-          Nossa IA se conecta com seu CRM, analisa seus leads e dispara
-          mensagens personalizadas no momento certo.
+          Entrega uma interpretação inteligente com foco estratégico para o seu
+          negócio
         </p>
         <div class="mt-10 flex flex-wrap justify-center gap-8">
           <div
             class="bg-[#1e1e1e] p-6 rounded-2xl shadow-md w-80 text-center border border-blue-700 gs-reveal"
           >
-            <h3 class="text-xl font-bold text-blue-400">IA Comercial</h3>
+            <h3 class="text-xl font-bold text-blue-400">Compreensão</h3>
             <p class="mt-2 text-gray-400">
-              Utilize inteligência artificial para responder leads em tempo real
-              e fechar vendas mais rápido.
+              Utilize inteligência artificial para compreender o significado dos
+              comentários
             </p>
           </div>
           <div
             class="bg-[#1e1e1e] p-6 rounded-2xl shadow-md w-80 text-center border border-blue-700 gs-reveal"
           >
-            <h3 class="text-xl font-bold text-blue-400">
-              WhatsApp Automatizado
-            </h3>
+            <h3 class="text-xl font-bold text-blue-400">Ganho financeiro</h3>
             <p class="mt-2 text-gray-400">
-              Automatize mensagens com inteligência, diretamente no canal mais
-              usado por seus clientes.
+              Torne-se mais assertivo e alavanque suas vendas
             </p>
           </div>
         </div>
@@ -166,18 +163,33 @@
       <section class="section gs-reveal relative py-16 text-center z-10">
         <h2 class="text-4xl font-extrabold text-blue-400">Escolha seu Plano</h2>
         <p class="mt-4 text-lg text-gray-400 max-w-3xl mx-auto">
-          Tenha acesso à IA LeadAI em planos sob medida para seu negócio.
+          Tenha acesso à ClaudIA em planos sob medida para seu negócio.
         </p>
         <div class="mt-10 flex flex-wrap justify-center gap-8">
           <div
+            class="bg-[#2d2d2d] p-8 rounded-2xl shadow-md w-96 border border-blue-700 gs-reveal"
+          >
+            <h3 class="text-2xl font-bold text-blue-400">Plano Gratuito</h3>
+            <p class="mt-4 text-gray-400">
+              Perfeito para quem quer experimentar as funcionalidades da ClaudIA
+              sem compromisso, com 5 campanhas.
+            </p>
+            <p class="mt-4 text-xl font-extrabold text-blue-300">R$ 0/mês</p>
+            <button
+              class="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-lg font-bold rounded-lg shadow-lg"
+            >
+              Começar
+            </button>
+          </div>
+
+          <div
             class="bg-[#252525] p-8 rounded-2xl shadow-md w-96 border border-blue-700 gs-reveal"
           >
-            <h3 class="text-2xl font-bold text-blue-400">Plano Starter</h3>
+            <h3 class="text-2xl font-bold text-blue-400">Plano Basíco</h3>
             <p class="mt-4 text-gray-400">
-              Ideal para equipes pequenas que querem começar com automações
-              inteligentes.
+              Ideal para equipes pequenas que querem começar com campanhas inteligêntes, com 15 chamadas.
             </p>
-            <p class="mt-4 text-xl font-extrabold text-blue-300">R$ 149/mês</p>
+            <p class="mt-4 text-xl font-extrabold text-blue-300">R$ 17.90 /mês</p>
             <button
               class="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-lg font-bold rounded-lg shadow-lg"
             >
@@ -190,9 +202,9 @@
             <h3 class="text-2xl font-bold text-blue-400">Plano Profissional</h3>
             <p class="mt-4 text-gray-400">
               Para times de vendas que precisam de escala, dashboards e
-              integrações completas.
+              integrações completas, 60 consultas  
             </p>
-            <p class="mt-4 text-xl font-extrabold text-blue-300">R$ 279/mês</p>
+            <p class="mt-4 text-xl font-extrabold text-blue-300">R$ 79.90/mês</p>
             <button
               class="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-lg font-bold rounded-lg shadow-lg"
             >
@@ -280,7 +292,7 @@
     const openBtn = document.querySelector(
       "button i.fa-terminal"
     ).parentElement;
-    const words = ["leads", "conversões", "vendas", "interações"];
+    const words = ["insights", "conversões", "vendas"];
     let index = 0;
     let charIndex = 0;
     let isDeleting = false;
@@ -383,7 +395,7 @@
           const data = {
             videoCtx,
             max_comments_per_video: 20,
-            ctx: input.value
+            ctx: input.value,
           };
           modal.classList.add("hidden");
           showLoading();
@@ -413,7 +425,7 @@
 
     function sendWhatsApp() {
       const message = document.getElementById("whatsapp-message").value;
-      const phoneNumber = "553496820404";
+      const phoneNumber = "5517997122611";
       if (message.trim() !== "") {
         const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
           message
@@ -428,7 +440,7 @@
       const data = {
         videoCtx: [],
         max_comments_per_video: 20,
-        ctx: ""
+        ctx: "",
       };
       videoLinks.map((id) =>
         data.videoCtx.push({ link: `https://www.youtube.com/watch?v=${id}` })
