@@ -1,6 +1,6 @@
 # YouTube Comments Sentiment Analysis
 
-This project is a web application developed in Python using Flask that extracts comments from YouTube videos and performs sentiment analysis on them. The application processes the comments, assigns labels such as **EXCELLENT**, **AVERAGE**, **BAD**, and **TERRIBLE** to each comment, and presents an overall conclusion of the audience's reaction. Additionally, based on the aggregated analysis, the application generates creative content suggestions specifically for TikTok using the OpenAI ChatCompletion API.
+This project is a web application developed in Python using Flask that extracts comments from YouTube videos and performs sentiment analysis on them. The application processes the comments, assigns labels such as **EXCELLENT**, **AVERAGE**, **BAD**, and **TERRIBLE** to each comment, and presents an overall conclusion of the audience’s reaction. Additionally, based on the aggregated analysis, the application generates creative content suggestions specifically for TikTok using the OpenAI ChatCompletion API (leveraging a specialized marketing RAG on top of OpenAI’s “4th model”).
 
 ## Features
 
@@ -8,27 +8,27 @@ This project is a web application developed in Python using Flask that extracts 
   Utilizes the YouTube API to collect up to 2000 comments from a video.
 
 - **Sentiment Analysis:**  
-  Uses a pre-trained sentiment analysis model (`nlptown/bert-base-multilingual-uncased-sentiment`) from Hugging Face to classify each comment.
-  - **Custom Emoji Analysis:** Custom routine to better interpret comments mostly made of emojis.
+  Uses a pre-trained sentiment analysis model ([nlptown/bert-base-multilingual-uncased-sentiment](https://huggingface.co/nlptown/bert-base-multilingual-uncased-sentiment)) from Hugging Face to classify each comment from a range of 1 (very negative) to 5 (highly positive).  
+  - **Custom Emoji Analysis:** Custom routine to better interpret comments mostly consisting of emojis.  
   - **Aggregation:** Computes an overall sentiment average from individual comment scores and generates a detailed analysis summary.
 
-- **Content Suggestions for TikTok:**  
-  Based on the detailed sentiment analysis, the application builds a comprehensive prompt and queries the OpenAI ChatCompletion API to generate at least three innovative and creative content ideas for TikTok. Each suggestion includes a brief explanation of how the idea taps into the current viewer sentiment and can boost audience engagement.
+- **Content Suggestions (RAG + OpenAI):**  
+  Harnesses a Retrieval-Augmented Generation workflow based on OpenAI’s “4th model,” which references a broad range of vectorized documents focusing on marketing sources. Generates at least three novel and creative content ideas tailored for social platforms such as TikTok, each with a brief explanation of how it addresses viewer sentiment.
 
 - **Modern UI/UX:**  
-  - A responsive web interface built with Flask and Bootstrap.
-  - A custom light-green toggle button to display or hide the analyzed comments.
-  - Detailed results page showing an overall sentiment conclusion, creative content suggestions, and a collapsible section for individual comment analyses.
-  - Clear formatting of suggestions – newlines in the suggestions are converted to HTML `<br>` tags, helping improve readability.
+  - A responsive web interface built with Flask and Bootstrap.  
+  - A custom light-green toggle button to display or hide the analyzed comments.  
+  - A results page showing an overall sentiment conclusion, creative content suggestions, and a collapsible section for individual comment analyses.  
+  - Clear formatting of suggestions – newlines in the suggestions are converted to HTML `<br>` tags for improved readability.
 
 ## Requirements
 
-- Python 3.7 or higher
-- Flask
-- google-api-python-client
-- transformers
-- torch
-- openai
+- Python 3.7 or higher  
+- Flask  
+- google-api-python-client  
+- transformers  
+- torch  
+- openai  
 
 ## Installation
 
