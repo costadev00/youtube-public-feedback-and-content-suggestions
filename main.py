@@ -89,8 +89,6 @@ def get_content_suggestions(analysis_summary, average):
         for content_block in msg.content
         if hasattr(content_block, "text") and hasattr(content_block.text, "value")
     )
- 
-
 
 
 def extract_video_id(url):
