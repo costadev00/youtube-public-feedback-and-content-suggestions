@@ -25,7 +25,7 @@ ASSISTANT_MODEL = "asst_W1LW7q9EXFRVWaUn7xiSp0yR"  # Replace with your custom as
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 CORS(app)
 
 def get_content_suggestions(analysis_summary, average):

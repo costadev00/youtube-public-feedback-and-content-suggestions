@@ -19,7 +19,10 @@
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
   </head>
   <div
     id="consoleModal"
@@ -495,23 +498,23 @@
 
       const partners = [
         {
-          logo: "./assets/biofy.png",
+          logo: "{{ url_for('static', filename='biofy.png') }}",
           alt: "Biofy",
         },
         {
-          logo: "./assets/nvidia-logo-0.png",
+          logo: "{{ url_for('static', filename='nvidia-logo-0.png') }}",
           alt: "Nvidia",
         },
         {
-          logo: "./assets/oracle-logo-0.png",
+          logo: "{{ url_for('static', filename='oracle-logo-0.png') }}",
           alt: "Oracle",
         },
         {
-          logo: "./assets/inata.svg",
+          logo: "{{ url_for('static', filename='inata.svg') }}",
           alt: "Inata",
         },
         {
-          logo: "./assets/logoHubio.svg",
+          logo: "{{ url_for('static', filename='logoHubio.svg') }}",
           alt: "Hubio",
         },
       ];
