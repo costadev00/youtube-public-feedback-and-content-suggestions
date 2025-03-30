@@ -11,11 +11,13 @@ import os
 import json
 from datetime import datetime
 from flask import jsonify
+from flask_cors import CORS
 
 # Configure OpenAI with your API key
 openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
+CORS(app)
 
 def get_content_suggestions(analysis_summary, average):
     """
@@ -142,7 +144,6 @@ def get_sentiment_pipeline():
 
 def map_star_label(label):
     try:
-        print(label)
         value = float(label.split()[0])
     except Exception:
         return label
