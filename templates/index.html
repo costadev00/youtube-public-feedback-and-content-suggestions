@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ClaudIA - IA para Vendas</title>
+    <title>ClaudIA - Analisando sentimentos, impulsionando decisões</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
     <link
@@ -23,6 +23,11 @@
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <link
+      rel="icon"
+      href="{{ url_for('static', filename='icone.png') }}"
+      type="image/png"
     />
   </head>
   <div
@@ -92,7 +97,7 @@
       <header
         class="relative py-6 px-4 md:px-8 flex justify-between items-center z-10"
       >
-        <h1 class="text-2xl font-extrabold tracking-wide">ClaudIA</h1>
+        <img src="{{ url_for('static', filename='logo.png') }}" class="h-16" />
         <div>
           <button
             class="bg-gray-600 hover:bg-gray-700 transition px-6 py-2 rounded-lg text-white font-bold shadow-lg mr-4"
