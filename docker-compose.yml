@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  youtube-feedback-app:
+    build: .
+    container_name: youtube-feedback-app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./analysis_results:/app/analysis_results
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=main.py
+    restart: unless-stopped
