@@ -1,7 +1,8 @@
 import re
 import asyncio
 import time
-from flask import Flask, render_template, request, jsonify, jsonify
+from urllib.parse import urlencode
+from flask import Flask, render_template, request, jsonify, jsonify, redirect
 from googleapiclient.discovery import build
 from transformers import pipeline
 from api_key import API_KEY          # YouTube API key
@@ -482,19 +483,16 @@ def batch_analysis():
         with open(aggregate_filename, 'w', encoding='utf-8') as f:
             json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
         
-        return jsonify({
-            'status': 'success',
-            'videos_analyzed': len(processed_videos),
-            'total_comments': len(all_comments),
-            'aggregate_average': aggregate_average,
-            'aggregate_conclusion': aggregate_conclusion,
-            'content_suggestions': suggestions,
-            'all_tags': unique_tags,
-            'batch_folder': batch_folder,
-            'processed_videos': processed_videos,
-            'failed_videos': failed_videos
-        })
-        
+        return render_template(
+            'result.html',
+            conclusion=aggregate_conclusion,
+            comments=all_comments,
+            sentiments=all_sentiments,
+            suggestions=suggestions,
+            zip=zip
+        )
+
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
