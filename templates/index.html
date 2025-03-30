@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ClaudIA - IA para Vendas</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
     <link
       href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css"
@@ -212,7 +213,10 @@
         </h2>
 
         <div class="splide__track">
-          <ul class="splide__list" id="comments-list"></ul>
+          <ul
+            class="splide__list w-full flex items-center justify-center"
+            id="comments-list"
+          ></ul>
         </div>
       </section>
     </div>
@@ -245,6 +249,17 @@
         </button>
       </div>
     </div>
+    <div
+      id="loadingOverlay"
+      class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 hidden flex items-center justify-center"
+    >
+      <div class="text-center">
+        <div
+          class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"
+        ></div>
+        <p class="mt-4 text-white text-lg font-semibold">Processando...</p>
+      </div>
+    </div>
   </body>
   <script>
     const videoCtx = [];
@@ -267,12 +282,19 @@
     const textElement = document.getElementById("dynamic-text");
     let currentMode = "link";
 
+    const loadingOverlay = document.getElementById("loadingOverlay");
+
+    const showLoading = () => {
+      loadingOverlay.classList.remove("hidden");
+    };
+    const hideLoading = () => loadingOverlay.classList.add("hidden");
+
     const modeLinkBtn = document.getElementById("modeLink");
     const modeContextBtn = document.getElementById("modeContext");
     const inputArea = document.getElementById("inputArea");
 
     const searchYouTube = async (query) => {
-      const apiKey = "AIzaSyAKLlonC2728ixCpvIe4hOgtDJ6OzfhM98";
+      const apiKey = "";
       try {
         const searchResponse = await fetch(
           `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(
@@ -310,19 +332,19 @@
       modeContextBtn.classList.toggle("bg-blue-700");
       modeContextBtn.classList.add("bg-gray-700");
       inputArea.innerHTML = `
-    <input
-      type="text"
-      id="youtubeLink"
-      placeholder="Cole o link do vídeo do YouTube"
-      class="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-white focus:outline-none"
-    />
-    <button
-      id="addLinkBtn"
-      class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg text-center"
-    >
-      Adicionar
-    </button>
-  `;
+        <input
+          type="text"
+          id="youtubeLink"
+          placeholder="Cole o link do vídeo do YouTube"
+          class="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-white focus:outline-none"
+        />
+        <button
+          id="addLinkBtn"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg text-center"
+        >
+          Adicionar
+        </button>
+      `;
     });
 
     modeContextBtn.addEventListener("click", () => {
@@ -332,50 +354,41 @@
       modeLinkBtn.classList.add("bg-gray-700");
 
       inputArea.innerHTML = `
-    <div class="flex flex-col gap-4 mb-4">
-      <textarea
-        id="contextInput"
-        placeholder="Descreva o contexto para análise..."
-        class="w-full p-4 rounded-lg bg-gray-700 text-white focus:outline-none resize-none"
-        rows="4"
-      ></textarea>
-      <button
-        id="addCtxBtn"
-        class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg"
-      >
-        Adicionar
-      </button>
-    </div>
-  `;
+        <div class="flex flex-col gap-4 mb-4">
+          <textarea
+            id="contextInput"
+            placeholder="Descreva o contexto para análise..."
+            class="w-full p-4 rounded-lg bg-gray-700 text-white focus:outline-none resize-none"
+            rows="4"
+          ></textarea>
+          <button
+            id="addCtxBtn"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg"
+          >
+            Adicionar
+          </button>
+        </div>
+      `;
 
       document
         .getElementById("addCtxBtn")
         .addEventListener("click", async () => {
           const input = document.getElementById("contextInput");
           await searchYouTube(input.value);
+          const data = {
+            videoCtx,
+            max_comments_per_video: 20,
+          };
           try {
-            const response = await fetch(
-              "http://localhost:5000/batch-analysis-ctx",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  videoCtx,
-                  max_comments_per_video: 20,
-                }),
-              }
-            );
-
-            if (!response.ok) throw new Error("Erro ao enviar para API");
-
-            const data = await response.json();
-            alert("Enviado com sucesso!");
-            console.log("Resposta:", data);
+            axios.post("http://127.0.0.1:5000/batch-analysis-ctx", data, {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+            modal.classList.add("hidden");
+            showLoading();
           } catch (err) {
-            console.error("Erro:", err);
-            alert("Erro ao enviar para API");
+            console.log("Erro:", err);
           }
         });
     });
@@ -400,27 +413,19 @@
     sendBtn.addEventListener("click", async () => {
       if (videoLinks.length === 0) return;
 
+      const data = {
+        videos: videoLinks.map((id) => `https://www.youtube.com/watch?v=${id}`),
+      };
       try {
-        const response = await fetch("http://localhost:5000/batch-analysis", {
-          method: "POST",
+        axios.post("http://127.0.0.1:5000/", data, {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            youtube_links: videoLinks.map(
-              (id) => `https://www.youtube.com/watch?v=${id}`
-            ),
-          }),
         });
-
-        if (!response.ok) throw new Error("Erro ao enviar para API");
-
-        const data = await response.json();
-        alert("Enviado com sucesso!");
-        console.log("Resposta:", data);
+        modal.classList.add("hidden");
+        showLoading();
       } catch (err) {
-        console.error("Erro:", err);
-        alert("Erro ao enviar para API");
+        console.log("Erro:", err);
       }
     });
 
@@ -450,13 +455,13 @@
           thumbEl.className = "relative";
 
           thumbEl.innerHTML = `
-<button class="absolute z-50 top-2 right-2 text-white bg-red-600 hover:bg-red-700 rounded-full w-8 h-8 flex mt-2 items-center justify-center" data-id="${videoId}">
-  <i class="fas fa-times text-sm"></i>
-</button>
-<a href="https://www.youtube.com/watch?v=${videoId}" target="_blank">
-  <img src="${thumbUrl}" alt="Thumbnail" class="rounded-lg shadow-lg hover:scale-105 transition transform duration-300 cursor-pointer mt-2" />
-</a>
-`;
+    <button class="absolute z-50 top-2 right-2 text-white bg-red-600 hover:bg-red-700 rounded-full w-8 h-8 flex mt-2 items-center justify-center" data-id="${videoId}">
+      <i class="fas fa-times text-sm"></i>
+    </button>
+    <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank">
+      <img src="${thumbUrl}" alt="Thumbnail" class="rounded-lg shadow-lg hover:scale-105 transition transform duration-300 cursor-pointer mt-2" />
+    </a>
+    `;
 
           container.appendChild(thumbEl);
           input.value = "";
@@ -523,10 +528,10 @@
 
       partners.forEach(({ logo, alt }) => {
         const logoHTML = `
-<li class="splide__slide flex items-center justify-center">
-  <img src="${logo}" alt="${alt}" class="h-20 w-auto max-w-[180px] object-contain grayscale hover:grayscale-0 transition duration-300">
-</li>
-`;
+    <li class="splide__slide flex items-center justify-center">
+      <img src="${logo}" alt="${alt}" class="h-20 w-auto max-w-[180px] object-contain grayscale hover:grayscale-0 transition duration-300">
+    </li>
+    `;
         commentsList.innerHTML += logoHTML;
       });
 

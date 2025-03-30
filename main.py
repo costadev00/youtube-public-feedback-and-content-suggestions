@@ -26,7 +26,8 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 app = Flask(__name__, static_folder='static')
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 
 def get_content_suggestions(analysis_summary, average):
     """
@@ -309,11 +310,11 @@ def save_comments_to_file(video_id, comments, sentiments, average, conclusion):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        youtube_link = request.form.get('youtube_link')
-        video_id = extract_video_id(youtube_link)
+        data = request.get_json()
+        video_id = [extract_video_id(url) for url in data['videos']]
         if not video_id:
             return render_template('index.html', error="Invalid link. Please enter a valid YouTube link.")
-        comments = get_comments(video_id, API_KEY, max_results=2000)
+        comments = get_comments(video_id[0], API_KEY, max_results=2000)
         sentiments = analyze_comments(comments)
         average = summarize_sentiments(sentiments)
         conclusion = generate_conclusion(average)
@@ -334,7 +335,7 @@ def index():
         )
     return render_template('index.html')
 
-@app.route('/batch-analiysis', methods=['POST'])
+@app.route('/batch-analysis-ctx', methods=['POST'])
 def batch_analysis():
     """
     Rota para análise em lote de múltiplos vídeos do YouTube.
