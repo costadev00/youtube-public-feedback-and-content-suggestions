@@ -1,0 +1,85 @@
+body {
+  background-color: #1e1e1e;
+  color: #f5f5f5;
+  overflow-x: hidden;
+}
+
+.typewriter span::after {
+  content: "|";
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.scroll-arrow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 30px 0;
+}
+
+.scroll-arrow i {
+  font-size: 2rem;
+  color: rgb(0, 179, 255);
+  animation: pulse-down 1.5s infinite ease-in-out;
+  transition: opacity 0.3s;
+}
+
+@keyframes pulse-down {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(10px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.bg-grid {
+  background-image: radial-gradient(circle, #2a2a2a 1px, transparent 3px);
+  background-size: 20px 20px;
+  opacity: 0.5;
+}
+
+.light-spot {
+  position: fixed;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgb(0, 179, 255) 0%, transparent 70%);
+  filter: blur(100px);
+  z-index: -1;
+  pointer-events: none;
+  transition: transform 0.1s ease-out;
+  animation: pulseLight 6s ease-in-out infinite;
+}
+
+@keyframes pulseLight {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+#whatsapp-button {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
