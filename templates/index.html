@@ -383,6 +383,7 @@
           const data = {
             videoCtx,
             max_comments_per_video: 20,
+            ctx: input.value
           };
           modal.classList.add("hidden");
           showLoading();
@@ -427,6 +428,7 @@
       const data = {
         videoCtx: [],
         max_comments_per_video: 20,
+        ctx: ""
       };
       videoLinks.map((id) =>
         data.videoCtx.push({ link: `https://www.youtube.com/watch?v=${id}` })
