@@ -1,47 +1,48 @@
 import re
 import asyncio
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from googleapiclient.discovery import build
 from transformers import pipeline
 from api_key import API_KEY          # YouTube API key
 from api_key import OPENAI_API_KEY   # OpenAI API key
 import openai
-
 import os
 import json
 from datetime import datetime
-from flask import jsonify
 
 # Configure OpenAI with your API key
 openai.api_key = OPENAI_API_KEY
+
+# Set your custom assistant model name
+ASSISTANT_MODEL = "claudIA"
 
 app = Flask(__name__)
 
 def get_content_suggestions(analysis_summary, average):
     """
     Receives a detailed analysis summary and the average sentiment,
-    and returns tailored TikTok content ideas to engage sports video audiences,
-    based on their feedback.
+    and returns tailored TikTok content marketing ideas using your custom assistant "claudIA".
     """
     prompt = (
         f"Based on the analysis of the comments from this sports video, the following observations were made:\n"
         f"- The audience's overall sentiment is {average:.2f} stars.\n"
         f"- Analysis summary: {analysis_summary}\n\n"
-        "Considering that this feedback comes from a sports-related content video, "
-        "please suggest at least 3 innovative and engaging TikTok content ideas that build on this audience reaction. "
-        "Each suggestion should include a brief explanation of how the idea taps into the current viewer sentiment and how it can boost audience engagement."
+        "Given these insights and your expertise as a marketing expert, "
+        "please suggest some innovative and engaging TikTok content marketing ideas tailored for sports content. "
+        "For each suggestion, include a brief explanation of how the idea leverages the audience's feedback to drive engagement and boost brand growth. Based on the files that you have."
     )
     
     completion = openai.ChatCompletion.create(
-        model="gpt-4",
+        model=ASSISTANT_MODEL,  # Using custom assistant "claudIA"
         messages=[
-            {"role": "system", "content": "You are a creative assistant specializing in social media content production for sports."},
+            {"role": "system", "content": "You are a marketing expert specialized in content marketing strategy for sports and social media."},
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
         max_tokens=300
     )
     return completion.choices[0].message["content"]
+
 
 def extract_video_id(url):
     """
@@ -235,20 +236,11 @@ def utility_processor():
 
 def save_comments_to_file(video_id, comments, sentiments, average, conclusion):
     """
-    Salva os comentários e suas análises em um arquivo JSON para uso posterior.
-    
-    Args:
-        video_id (str): ID do vídeo do YouTube
-        comments (list): Lista de comentários
-        sentiments (list): Lista de análises de sentimento
-        average (float): Média de sentimento
-        conclusion (str): Conclusão gerada pela análise
+    Saves the comments and their analysis to a JSON file for later use.
     """
-    # Cria pasta para armazenar os resultados se não existir
     if not os.path.exists('analysis_results'):
         os.makedirs('analysis_results')
     
-    # Prepara os dados para salvar
     data = {
         'video_id': video_id,
         'timestamp': datetime.now().isoformat(),
@@ -260,13 +252,11 @@ def save_comments_to_file(video_id, comments, sentiments, average, conclusion):
         ]
     }
     
-    # Salva em um arquivo com nome baseado no ID do vídeo e timestamp
     filename = f"analysis_results/{video_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
     
     return filename
-
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -275,15 +265,15 @@ def index():
         video_id = extract_video_id(youtube_link)
         if not video_id:
             return render_template('index.html', error="Invalid link. Please enter a valid YouTube link.")
-        comments = get_comments(video_id, API_KEY, max_results=50)
+        comments = get_comments(video_id, API_KEY, max_results=2000)
         sentiments = analyze_comments(comments)
         average = summarize_sentiments(sentiments)
         conclusion = generate_conclusion(average)
-
-        # Salva os comentários e análises em um arquivo
+        
+        # Save comments and analysis to file
         saved_file = save_comments_to_file(video_id, comments, sentiments, average, conclusion)
         
-        # Generate content suggestions based on the analysis using OpenAI
+        # Generate content suggestions based on the analysis using your custom assistant "claudIA"
         suggestions = get_content_suggestions(conclusion, average)
         
         return render_template(
@@ -296,23 +286,11 @@ def index():
         )
     return render_template('index.html')
 
-    
-@app.route('/batch-analysis', methods=['POST'])
+@app.route('/batch-analiysis', methods=['POST'])
 def batch_analysis():
     """
-    Rota para análise em lote de múltiplos vídeos do YouTube.
-    Recebe uma lista de links de vídeos, analisa os comentários de todos eles
-    e retorna uma análise agregada, salvando também os resultados em arquivos.
-    
-    Exemplo de JSON esperado no request:
-    {
-        "youtube_links": [
-            "https://www.youtube.com/watch?v=video1",
-            "https://www.youtube.com/watch?v=video2",
-            "..."
-        ],
-        "max_comments_per_video": 50  # opcional, default 50
-    }
+    Route for batch analysis of multiple YouTube videos.
+    Expects a JSON payload with a list of YouTube links.
     """
     try:
         data = request.get_json()
@@ -323,11 +301,9 @@ def batch_analysis():
         youtube_links = data.get('youtube_links', [])
         max_comments = data.get('max_comments_per_video', 50)
         
-        # Verificar se há links para analisar
         if not youtube_links or not isinstance(youtube_links, list):
             return jsonify({'error': 'Please provide at least one YouTube link.'}), 400
             
-        # Criar pasta para resultados em lote
         batch_folder = f"batch_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         batch_path = os.path.join('analysis_results', batch_folder)
         
@@ -337,37 +313,28 @@ def batch_analysis():
         if not os.path.exists(batch_path):
             os.makedirs(batch_path)
         
-        # Inicializar variáveis para análise agregada
         all_comments = []
         all_sentiments = []
         processed_videos = []
         failed_videos = []
         
-        # Processar cada vídeo
         for link in youtube_links:
             video_id = extract_video_id(link)
-            
             if not video_id:
                 failed_videos.append({'link': link, 'reason': 'Invalid YouTube link format'})
                 continue
                 
             try:
-                # Obter e analisar comentários
                 comments = get_comments(video_id, API_KEY, max_results=max_comments)
                 sentiments = analyze_comments(comments)
-                
                 if not comments or len(comments) == 0:
                     failed_videos.append({'link': link, 'reason': 'No comments found or unable to retrieve comments'})
                     continue
                 
-                # Calcular média para este vídeo
                 video_average = summarize_sentiments(sentiments)
                 video_conclusion = generate_conclusion(video_average)
-                
-                # Salvar análise individual deste vídeo
                 filename = save_comments_to_file(video_id, comments, sentiments, video_average, video_conclusion)
                 
-                # Adicionar aos resultados agregados
                 all_comments.extend(comments)
                 all_sentiments.extend(sentiments)
                 
@@ -382,7 +349,6 @@ def batch_analysis():
             except Exception as e:
                 failed_videos.append({'link': link, 'reason': str(e)})
         
-        # Calcular análise agregada de todos os vídeos
         if all_sentiments:
             aggregate_average = summarize_sentiments(all_sentiments)
             aggregate_conclusion = generate_conclusion(aggregate_average)
@@ -392,7 +358,6 @@ def batch_analysis():
                 'failed_videos': failed_videos
             }), 400
         
-        # Salvar análise agregada em um arquivo separado
         aggregate_data = {
             'timestamp': datetime.now().isoformat(),
             'videos_analyzed': len(processed_videos),
@@ -407,10 +372,7 @@ def batch_analysis():
         with open(aggregate_filename, 'w', encoding='utf-8') as f:
             json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
         
-        # Gerar sugestões baseadas na análise agregada
         suggestions = get_content_suggestions(aggregate_conclusion, aggregate_average)
-        
-        # Salvar as sugestões no arquivo de agregação atualizado
         aggregate_data['content_suggestions'] = suggestions
         with open(aggregate_filename, 'w', encoding='utf-8') as f:
             json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
