@@ -142,6 +142,7 @@ def get_sentiment_pipeline():
 
 def map_star_label(label):
     try:
+        print(label)
         value = float(label.split()[0])
     except Exception:
         return label
