@@ -1,6 +1,7 @@
 import re
 import asyncio
-from flask import Flask, render_template, request, jsonify
+import time
+from flask import Flask, render_template, request, jsonify, jsonify
 from googleapiclient.discovery import build
 from transformers import pipeline
 from api_key import API_KEY          # YouTube API key
@@ -11,12 +12,18 @@ import json
 from datetime import datetime
 from flask import jsonify
 from flask_cors import CORS
-
+import os
+import json
+from datetime import datetime
+from openai import OpenAI
 # Configure OpenAI with your API key
 openai.api_key = OPENAI_API_KEY
 
 # Set your custom assistant model name
-ASSISTANT_MODEL = "claudIA"
+ASSISTANT_MODEL = "asst_W1LW7q9EXFRVWaUn7xiSp0yR"  # Replace with your custom assistant model 
+
+client = OpenAI(api_key=OPENAI_API_KEY)
+
 
 app = Flask(__name__)
 CORS(app)
@@ -24,27 +31,65 @@ CORS(app)
 def get_content_suggestions(analysis_summary, average):
     """
     Receives a detailed analysis summary and the average sentiment,
-    and returns tailored TikTok content marketing ideas using your custom assistant "claudIA".
+    and returns tailored TikTok content marketing ideas using your custom assistant 'claudIA'.
     """
+    
+    thread = client.beta.threads.create()
+
+    # Mensagem inicial do usuário, usando os dados de entrada reais
     prompt = (
         f"Based on the analysis of the comments from this sports video, the following observations were made:\n"
         f"- The audience's overall sentiment is {average:.2f} stars.\n"
         f"- Analysis summary: {analysis_summary}\n\n"
         "Given these insights and your expertise as a marketing expert, "
         "please suggest some innovative and engaging TikTok content marketing ideas tailored for sports content. "
-        "For each suggestion, include a brief explanation of how the idea leverages the audience's feedback to drive engagement and boost brand growth. Based on the files that you have."
+        "For each suggestion, include a brief explanation of how the idea leverages the audience's feedback "
+        "to drive engagement and boost brand growth."
     )
-    
-    completion = openai.ChatCompletion.create(
-        model=ASSISTANT_MODEL,  # Using custom assistant "claudIA"
-        messages=[
-            {"role": "system", "content": "You are a marketing expert specialized in content marketing strategy for sports and social media."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.7,
-        max_tokens=300
+
+    client.beta.threads.messages.create(
+        thread_id=thread.id,
+        role="user",
+        content=prompt
     )
-    return completion.choices[0].message["content"]
+
+    # Criação do run
+    run = client.beta.threads.runs.create(
+        thread_id=thread.id,
+        assistant_id=ASSISTANT_MODEL,
+        instructions="Please address the user as Jane Doe. The user has a premium account."
+    )
+
+    # Polling até a conclusão do run
+    while True:
+        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)  # Atualiza o run
+        if run.status == 'completed':
+            break
+        elif run.status in ['failed', 'cancelled', 'expired']:
+            raise RuntimeError(f"Run failed with status: {run.status}")
+        time.sleep(1)
+
+    # Recupera mensagens do thread
+    messages = client.beta.threads.messages.list(thread_id=thread.id)
+
+    print(
+        "\n".join(
+        content_block.text.value
+        for msg in messages.data
+        for content_block in msg.content
+        if hasattr(content_block, "text") and hasattr(content_block.text, "value")
+    )
+    )
+
+    # Retorna todas as mensagens concatenadas
+    return "\n".join(
+        content_block.text.value
+        for msg in messages.data
+        for content_block in msg.content
+        if hasattr(content_block, "text") and hasattr(content_block.text, "value")
+    )
+ 
+
 
 
 def extract_video_id(url):
