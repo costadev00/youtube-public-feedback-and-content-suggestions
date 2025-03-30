@@ -302,15 +302,17 @@ def index():
 def batch_analysis():
     """
     Rota para análise em lote de múltiplos vídeos do YouTube.
-    Recebe uma lista de links de vídeos, analisa os comentários de todos eles
+    Recebe uma lista de vídeos com links e tags, analisa os comentários de todos eles
     e retorna uma análise agregada, salvando também os resultados em arquivos.
     
     Exemplo de JSON esperado no request:
     {
-        "youtube_links": [
-            "https://www.youtube.com/watch?v=video1",
-            "https://www.youtube.com/watch?v=video2",
-            "..."
+        "videoCtx": [
+            {
+                "link": "https://www.youtube.com/watch?v=videoId",
+                "tags": ["tag1", "tag2", "..."]
+            },
+            ...
         ],
         "max_comments_per_video": 50  # opcional, default 50
     }
@@ -318,15 +320,15 @@ def batch_analysis():
     try:
         data = request.get_json()
         
-        if not data or 'youtube_links' not in data:
-            return jsonify({'error': 'Invalid request. Please provide a list of YouTube links.'}), 400
+        if not data or 'videoCtx' not in data:
+            return jsonify({'error': 'Invalid request. Please provide a list of videos with links and tags.'}), 400
             
-        youtube_links = data.get('youtube_links', [])
-        max_comments = data.get('max_comments_per_video', 50)
+        video_contexts = data.get('videoCtx', [])
+        max_comments = data.get('max_comments_per_video', 20)
         
-        # Verificar se há links para analisar
-        if not youtube_links or not isinstance(youtube_links, list):
-            return jsonify({'error': 'Please provide at least one YouTube link.'}), 400
+        # Verificar se há vídeos para analisar
+        if not video_contexts or not isinstance(video_contexts, list):
+            return jsonify({'error': 'Please provide at least one video.'}), 400
             
         # Criar pasta para resultados em lote
         batch_folder = f"batch_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -345,11 +347,19 @@ def batch_analysis():
         failed_videos = []
         
         # Processar cada vídeo
-        for link in youtube_links:
+        for video_ctx in video_contexts:
+            link = video_ctx.get('link', '')
+            tags = video_ctx.get('tags', [])
+            
+            # Validar se o link existe
+            if not link:
+                failed_videos.append({'video_ctx': video_ctx, 'reason': 'Missing YouTube link'})
+                continue
+                
             video_id = extract_video_id(link)
             
             if not video_id:
-                failed_videos.append({'link': link, 'reason': 'Invalid YouTube link format'})
+                failed_videos.append({'video_ctx': video_ctx, 'reason': 'Invalid YouTube link format'})
                 continue
                 
             try:
@@ -358,15 +368,32 @@ def batch_analysis():
                 sentiments = analyze_comments(comments)
                 
                 if not comments or len(comments) == 0:
-                    failed_videos.append({'link': link, 'reason': 'No comments found or unable to retrieve comments'})
+                    failed_videos.append({'video_ctx': video_ctx, 'reason': 'No comments found or unable to retrieve comments'})
                     continue
                 
                 # Calcular média para este vídeo
                 video_average = summarize_sentiments(sentiments)
                 video_conclusion = generate_conclusion(video_average)
                 
-                # Salvar análise individual deste vídeo
-                filename = save_comments_to_file(video_id, comments, sentiments, video_average, video_conclusion)
+                # Dados a serem salvos para este vídeo
+                video_data = {
+                    'video_id': video_id,
+                    'link': link,
+                    'tags': tags,
+                    'timestamp': datetime.now().isoformat(),
+                    'average_sentiment': video_average,
+                    'conclusion': video_conclusion,
+                    'comments_analysis': [
+                        {'comment': comment, 'sentiment': sentiment.get('label', 'N/A')}
+                        for comment, sentiment in zip(comments, sentiments)
+                    ]
+                }
+                
+                # Salvar em um arquivo com nome baseado no ID do vídeo e timestamp
+                video_filename = f"{video_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                video_filepath = os.path.join(batch_path, video_filename)
+                with open(video_filepath, 'w', encoding='utf-8') as f:
+                    json.dump(video_data, f, ensure_ascii=False, indent=4)
                 
                 # Adicionar aos resultados agregados
                 all_comments.extend(comments)
@@ -375,13 +402,14 @@ def batch_analysis():
                 processed_videos.append({
                     'video_id': video_id,
                     'link': link,
+                    'tags': tags,
                     'comments_count': len(comments),
                     'average': video_average,
                     'conclusion': video_conclusion
                 })
                 
             except Exception as e:
-                failed_videos.append({'link': link, 'reason': str(e)})
+                failed_videos.append({'video_ctx': video_ctx, 'reason': str(e)})
         
         # Calcular análise agregada de todos os vídeos
         if all_sentiments:
@@ -393,6 +421,15 @@ def batch_analysis():
                 'failed_videos': failed_videos
             }), 400
         
+        # Extrair todas as tags únicas de todos os vídeos processados
+        all_tags = []
+        for video in processed_videos:
+            all_tags.extend(video.get('tags', []))
+        unique_tags = list(set(all_tags))
+        
+        # Gerar sugestões baseadas na análise agregada
+        suggestions = get_content_suggestions(aggregate_conclusion, aggregate_average)
+        
         # Salvar análise agregada em um arquivo separado
         aggregate_data = {
             'timestamp': datetime.now().isoformat(),
@@ -400,19 +437,13 @@ def batch_analysis():
             'total_comments': len(all_comments),
             'aggregate_average': aggregate_average,
             'aggregate_conclusion': aggregate_conclusion,
+            'content_suggestions': suggestions,
+            'all_tags': unique_tags,
             'processed_videos': processed_videos,
             'failed_videos': failed_videos
         }
         
         aggregate_filename = os.path.join(batch_path, 'aggregate_analysis.json')
-        with open(aggregate_filename, 'w', encoding='utf-8') as f:
-            json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
-        
-        # Gerar sugestões baseadas na análise agregada
-        suggestions = get_content_suggestions(aggregate_conclusion, aggregate_average)
-        
-        # Salvar as sugestões no arquivo de agregação atualizado
-        aggregate_data['content_suggestions'] = suggestions
         with open(aggregate_filename, 'w', encoding='utf-8') as f:
             json.dump(aggregate_data, f, ensure_ascii=False, indent=4)
         
@@ -423,6 +454,7 @@ def batch_analysis():
             'aggregate_average': aggregate_average,
             'aggregate_conclusion': aggregate_conclusion,
             'content_suggestions': suggestions,
+            'all_tags': unique_tags,
             'batch_folder': batch_folder,
             'processed_videos': processed_videos,
             'failed_videos': failed_videos
