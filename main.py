@@ -28,66 +28,71 @@ app = Flask(__name__, static_folder="static")
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
-def get_content_suggestions(analysis_summary, average, context):
+def get_content_suggestions(analysis_summary, average, context, comments):
     """
-    Receives a detailed analysis summary and the average sentiment,
-    and returns tailored TikTok content marketing ideas using your custom assistant 'claudIA'.
+    Receives a detailed analysis summary, the average sentiment,
+    a context string, and the comments list, then returns tailored
+    TikTok content marketing ideas using your custom assistant.
     """
+
+    def strip_markdown(text):
+        import re
+        # Remove triple backticks and code blocks
+        text = re.sub(r'```+[^`]+```+', '', text)
+        # Remove inline backticks
+        text = re.sub(r'`([^`]+)`', r'\1', text)
+        # Remove bold/italic markers (** or __ or *)
+        text = re.sub(r'(\*+)([^*]+)(\*+)', r'\2', text)
+        text = re.sub(r'(_+)([^_]+)(_+)', r'\2', text)
+        # Remove headings (#, `###### Heading`)
+        text = re.sub(r'(^|\n)#{1,6}\s*(.*)', r'\2', text)
+        return text
 
     thread = client.beta.threads.create()
 
-    # Mensagem inicial do usuário, usando os dados de entrada reais
     prompt = (
         f"Based on the analysis of the comments from these {context} video, the following observations were made:\n"
         f"- The audience's overall sentiment is {average:.2f} stars.\n"
         f"- Analysis summary: {analysis_summary}\n\n"
         "Given these insights and your expertise as a marketing expert, "
-        "please suggest some innovative and engaging TikTok content marketing ideas tailored for sports content. "
+        f"please suggest in Portuguese from Brazil, some innovative and engaging social media content marketing ideas tailored for {context} content. "
         "For each suggestion, include a brief explanation of how the idea leverages the audience's feedback "
         "to drive engagement and boost brand growth."
+        f"Consider these comments to get a plus reaction of the audience: {comments[:20] if isinstance(comments, list) else 'No comments available'}"
     )
 
     client.beta.threads.messages.create(
-        thread_id=thread.id, role="user", content=prompt
+        thread_id=thread.id, 
+        role="user", 
+        content=prompt
     )
 
-    # Criação do run
     run = client.beta.threads.runs.create(
         thread_id=thread.id,
         assistant_id=ASSISTANT_MODEL,
         instructions="Please address the user as Jane Doe. The user has a premium account.",
     )
 
-    # Polling até a conclusão do run
     while True:
-        run = client.beta.threads.runs.retrieve(
-            thread_id=thread.id, run_id=run.id
-        )  # Atualiza o run
+        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
         if run.status == "completed":
             break
         elif run.status in ["failed", "cancelled", "expired"]:
             raise RuntimeError(f"Run failed with status: {run.status}")
         time.sleep(1)
 
-    # Recupera mensagens do thread
     messages = client.beta.threads.messages.list(thread_id=thread.id)
 
-    print(
-        "\n".join(
-            content_block.text.value
-            for msg in messages.data
-            for content_block in msg.content
-            if hasattr(content_block, "text") and hasattr(content_block.text, "value")
-        )
-    )
+    assistant_responses = []
+    for msg in messages.data:
+        if msg.role.lower() == "assistant":
+            for content_block in msg.content:
+                if hasattr(content_block, "text") and hasattr(content_block.text, "value"):
+                    # Apply Markdown filtering here
+                    filtered_text = strip_markdown(content_block.text.value)
+                    assistant_responses.append(filtered_text)
 
-    # Retorna todas as mensagens concatenadas
-    return "\n".join(
-        content_block.text.value
-        for msg in messages.data
-        for content_block in msg.content
-        if hasattr(content_block, "text") and hasattr(content_block.text, "value")
-    )
+    return "\n".join(assistant_responses)
 
 
 def extract_video_id(url):
@@ -253,7 +258,7 @@ def generate_conclusion(average):
         return "Unfortunately, we could not gather enough data to reach a conclusion. Please try again later."
 
     if average >= 4.5:
-        rating = "AMAZING"
+        return "AMAZING"
         extra_message = "The feedback was overwhelmingly positive, indicating that the content resonated strongly with the audience."
     elif average >= 4.0:
         rating = "GOOD"
@@ -319,18 +324,18 @@ def index():
             return render_template(
                 "index.html", error="Invalid link. Please enter a valid YouTube link."
             )
+
+        # Retrieve comments
         comments = get_comments(video_id[0], API_KEY, max_results=2000)
         sentiments = analyze_comments(comments)
         average = summarize_sentiments(sentiments)
         conclusion = generate_conclusion(average)
 
         # Save comments and analysis to file
-        saved_file = save_comments_to_file(
-            video_id, comments, sentiments, average, conclusion
-        )
+        saved_file = save_comments_to_file(video_id, comments, sentiments, average, conclusion)
 
-        # Generate content suggestions based on the analysis using your custom assistant "claudIA"
-        suggestions = get_content_suggestions(conclusion, average)
+        # Now pass comments as an argument
+        suggestions = get_content_suggestions(conclusion, average, context="video", comments=comments)
 
         return render_template(
             "result.html",
@@ -498,7 +503,7 @@ def batch_analysis():
         unique_tags = list(set(all_tags))
 
         # Gerar sugestões baseadas na análise agregada
-        suggestions = get_content_suggestions(aggregate_conclusion, aggregate_average, context=context_input)
+        suggestions = get_content_suggestions(aggregate_conclusion, aggregate_average, context=context_input, comments=all_comments)
 
         # Salvar análise agregada em um arquivo separado
         aggregate_data = {
