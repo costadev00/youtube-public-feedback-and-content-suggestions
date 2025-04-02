@@ -255,31 +255,45 @@ def summarize_sentiments(sentiments):
 
 def generate_conclusion(average):
     if average is None:
-        return "Unfortunately, we could not gather enough data to reach a conclusion. Please try again later."
+        return "Infelizmente, não conseguimos coletar dados suficientes para chegar a uma conclusão. Por favor, tente novamente mais tarde."
 
     if average >= 4.5:
-        return "AMAZING"
-        extra_message = "The feedback was overwhelmingly positive, indicating that the content resonated strongly with the audience."
+        rating = "EXCELENTE"
+        extra_message = "O feedback foi extremamente positivo, indicando que o conteúdo repercutiu fortemente com a audiência."
+        english_rating = "AMAZING"
+        english_extra_message = "The feedback was overwhelmingly positive, indicating that the content resonated strongly with the audience."
     elif average >= 4.0:
-        rating = "GOOD"
-        extra_message = "The feedback was generally positive, showing that the audience had a favorable response to the content."
+        rating = "BOM"
+        extra_message = "O feedback foi geralmente positivo, mostrando que a audiência teve uma resposta favorável ao conteúdo."
+        english_rating = "GOOD"
+        english_extra_message = "The feedback was generally positive, showing that the audience had a favorable response to the content."
     elif average >= 3.5:
-        rating = "AVERAGE"
-        extra_message = "The feedback was moderately positive, suggesting room for improvement. Consider refining the content or presentation."
+        rating = "MÉDIO"
+        extra_message = "O feedback foi moderadamente positivo, sugerindo espaço para melhorias. Considere refinar o conteúdo ou a apresentação."
+        english_rating = "AVERAGE"
+        english_extra_message = "The feedback was moderately positive, suggesting room for improvement. Consider refining the content or presentation."
     elif average >= 3.0:
-        rating = "BAD"
-        extra_message = "The feedback was below average, indicating that the content did not fully meet audience expectations."
+        rating = "RUIM"
+        extra_message = "O feedback ficou abaixo da média, indicando que o conteúdo não atendeu completamente às expectativas da audiência."
+        english_rating = "BAD"
+        english_extra_message = "The feedback was below average, indicating that the content did not fully meet audience expectations."
     else:
-        rating = "TERRIBLE"
-        extra_message = (
-            "The feedback was extremely negative, indicating that the content did not meet expectations. "
-            "Reevaluate the material and consider drastic changes."
-        )
+        rating = "PÉSSIMO"
+        extra_message = "O feedback foi extremamente negativo, indicando que o conteúdo não atendeu às expectativas. Reavalie o material e considere mudanças drásticas."
+        english_rating = "TERRIBLE"
+        english_extra_message = "The feedback was extremely negative, indicating that the content did not meet expectations. Reevaluate the material and consider drastic changes."
 
     conclusion = (
-        f"Conclusion: The overall reaction from the audience was <strong>{rating}</strong> with an average of {average:.2f} stars. "
+        f"Conclusão: A reação geral da audiência foi <strong>{rating}</strong> com uma média de {average:.2f} estrelas. "
         f"{extra_message}"
     )
+    
+    # Keep the English version for reference or other uses if needed
+    english_conclusion = (
+        f"Conclusion: The overall reaction from the audience was <strong>{english_rating}</strong> with an average of {average:.2f} stars. "
+        f"{english_extra_message}"
+    )
+    
     return conclusion
 
 
