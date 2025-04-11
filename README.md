@@ -62,35 +62,54 @@ This project is a web application developed in Python using Flask that extracts 
 2. Access the application in your browser at http://127.0.0.1:5000/.
 3. Enter the link of a YouTube video and submit the form to see the comment analysis and personalized conclusion.
 
-
 ## Architecture
 
 The architecture of the YouTube Comments Sentiment Analysis application is illustrated in the following diagram:
 
-![Architecture Diagram](youtube-comment-analysis-architecture.png)
+```mermaid
+flowchart TD
+    A[User] -->|Submits YouTube Link| B1(Extract Video ID)
+    A[User] -->|Inserts Content Theme| B2(YouTube Search)
+    B1 --> C1[YouTube API - Retrieve Comments]
+    B2 --> C2[Extract Comments from Top 5 Videos]
+    
+    C1 & C2 -->|All Comments| D[Sentiment Analysis Module]
+    D --> D1[Pre-trained BERT Model - nlptown/bert-base-multilingual-uncased-sentiment]
+    D --> D2[Custom Emoji Detection]
+    
+    D1 & D2 --> E[Rank Comments - 1-5 Scale]
+    E --> F[Aggregate Sentiment Scores]
+    F --> G[Generate Average Classification]
+    
+    G --> H[Build Context for RAG]
+    H --> I[RAG System - Built on GPT-4]
+    I --> I1[Context: Marketing Books & Content Creation Documents]
+    
+    I & I1 --> J[Generate Marketing Campaign Strategy]
+    J --> K[Store Results - JSON Files]
+    K --> L[Display Results in UI]
+```
 
 The main components of the architecture are:
 
-1. **YouTube API:**  
-   Fetches comments from YouTube videos.
+1. **User Input Processing:**  
+   Accepts either a direct YouTube link or a content theme, which initiates different processing paths.
 
-2. **Sentiment Analysis Module:**  
-   Processes the comments using a pre-trained sentiment analysis model.
+2. **YouTube Data Collection:**  
+   - For direct links: Extracts video ID and retrieves comments
+   - For themes: Searches YouTube for relevant videos and extracts comments from multiple sources
 
-3. **Emoji Analysis Routine:**  
-   Custom logic to interpret comments primarily composed of emojis.
+3. **Sentiment Analysis Module:**  
+   Processes the comments using a pre-trained BERT sentiment analysis model and custom emoji detection.
 
-4. **Aggregation Module:**  
-   Computes the overall sentiment and generates a detailed analysis summary.
+4. **Aggregation and Classification:**  
+   Ranks comments on a 1-5 scale, aggregates scores, and generates an overall sentiment classification.
 
-5. **Content Suggestion Module:**  
-   Uses the OpenAI ChatCompletion API to generate TikTok content suggestions based on the sentiment analysis.
+5. **Retrieval-Augmented Generation (RAG):**  
+   Takes the sentiment analysis results and builds context for the RAG system built on GPT-4, which is enhanced with specialized marketing knowledge.
 
-6. **Web Interface:**  
-   Built with Flask and Bootstrap, it displays the results and suggestions to the user.
+6. **Content Strategy Generation:**  
+   Produces tailored marketing campaign strategies based on the sentiment analysis and specialized marketing context.
 
-7. **Database:**  
-   Stores the comments, sentiment scores, and generated content suggestions.
-
-8. **User Interaction:**  
-   Users interact with the application through a modern, responsive web interface.
+7. **Storage and Presentation:**  
+   Stores analysis results in JSON files and presents them through a responsive user interface.
